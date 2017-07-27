@@ -31,6 +31,10 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @see RestClient
+ * @author Omnaest
+ */
 public class RestHelper
 {
 	private static Logger LOG = LoggerFactory.getLogger(RestHelper.class);
