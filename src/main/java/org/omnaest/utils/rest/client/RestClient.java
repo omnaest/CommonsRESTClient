@@ -18,6 +18,8 @@
 */
 package org.omnaest.utils.rest.client;
 
+import java.util.Map;
+
 /**
  * @see XMLRestClient
  * @see JSONRestClient
@@ -27,5 +29,7 @@ public interface RestClient
 {
 
 	public <T> T requestGet(String url, Class<T> type);
+
+	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers);
 
 }

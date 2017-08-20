@@ -21,6 +21,8 @@ package org.omnaest.utils.rest.client;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Collections;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -39,6 +41,28 @@ public class RestHelper
 {
 	private static Logger LOG = LoggerFactory.getLogger(RestHelper.class);
 
+	/**
+	 * @see #getStatusCode()
+	 * @author Omnaest
+	 */
+	public static class RESTAccessExeption extends RuntimeException
+	{
+		private static final long	serialVersionUID	= 13836403364765387L;
+		private int					statusCode;
+
+		public RESTAccessExeption(int statusCode)
+		{
+			super("REST access failed with a non 2xx status code: " + statusCode);
+			this.statusCode = statusCode;
+		}
+
+		public int getStatusCode()
+		{
+			return this.statusCode;
+		}
+
+	}
+
 	public static String encodeUrlParameter(String parameter)
 	{
 		try
@@ -53,13 +77,27 @@ public class RestHelper
 
 	public static String requestGet(String url)
 	{
+		Map<String, String> headers = Collections.emptyMap();
+		return requestGet(url, headers);
+	}
+
+	public static String requestGet(String url, Map<String, String> headers)
+	{
 		String retval = null;
 		try (CloseableHttpClient httpclient = HttpClients.createDefault())
 		{
 			HttpGet httpGet = new HttpGet(url);
+			applyHeaders(headers, httpGet);
 			try (CloseableHttpResponse response = httpclient.execute(httpGet))
 			{
 				HttpEntity entity = response.getEntity();
+
+				int statusCode = response	.getStatusLine()
+											.getStatusCode();
+				if (statusCode < 200 || statusCode > 299)
+				{
+					throw new RESTAccessExeption(statusCode);
+				}
 
 				retval = EntityUtils.toString(entity, "utf-8");
 			}
@@ -73,5 +111,16 @@ public class RestHelper
 			LOG.error("", e);
 		}
 		return retval;
+	}
+
+	private static void applyHeaders(Map<String, String> headers, HttpGet httpGet)
+	{
+		if (headers != null)
+		{
+			for (String name : headers.keySet())
+			{
+				httpGet.addHeader(name, headers.get(name));
+			}
+		}
 	}
 }
