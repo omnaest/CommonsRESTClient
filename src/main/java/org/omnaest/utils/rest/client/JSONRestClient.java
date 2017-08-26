@@ -18,20 +18,17 @@
 */
 package org.omnaest.utils.rest.client;
 
-import java.util.Collections;
 import java.util.Map;
 
 import org.omnaest.utils.JSONHelper;
 
-public class JSONRestClient implements RestClient
+/**
+ * @see RestClient
+ * @see JSONHelper
+ * @author Omnaest
+ */
+public class JSONRestClient extends AbstractRestClient
 {
-	@Override
-	public <T> T requestGet(String url, Class<T> type)
-	{
-		Map<String, String> headers = Collections.emptyMap();
-		return this.requestGet(url, type, headers);
-	}
-
 	@Override
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
 	{

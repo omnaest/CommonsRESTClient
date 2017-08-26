@@ -18,22 +18,26 @@
 */
 package org.omnaest.utils.rest.client;
 
+import java.util.Collections;
 import java.util.Map;
-
-import org.omnaest.utils.XMLHelper;
 
 /**
  * @see RestClient
- * @see XMLHelper
  * @author Omnaest
  */
-public class XMLRestClient extends AbstractRestClient
+public abstract class AbstractRestClient implements RestClient
 {
 
-	@Override
-	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
+	public AbstractRestClient()
 	{
-		return XMLHelper.parse(RestHelper.requestGet(url, headers), type);
+		super();
+	}
+
+	@Override
+	public <T> T requestGet(String url, Class<T> type)
+	{
+		Map<String, String> headers = Collections.emptyMap();
+		return this.requestGet(url, type, headers);
 	}
 
 }
