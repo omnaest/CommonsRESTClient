@@ -18,39 +18,23 @@
 */
 package org.omnaest.utils.rest.client;
 
-import java.util.Map;
-
 /**
- * @see XMLRestClient
- * @see JSONRestClient
+ * Helper to create urls with encoded parameters
+ *
  * @author Omnaest
  */
-public interface RestClient
+public interface URLBuilder
 {
-	/**
-	 * Helper to create urls with encoded parameters
-	 *
-	 * @see URLBuilder
-	 * @return
-	 */
-	public URLBuilder urlBuilder();
+	public interface URLBuilderWithBaseUrl
+	{
+		public URLBuilderWithBaseUrl addPathToken(String pathToken);
 
-	/**
-	 * @see #urlBuilder()
-	 * @see #requestGet(String, Class, Map)
-	 * @param url
-	 * @param type
-	 * @return
-	 */
-	public <T> T requestGet(String url, Class<T> type);
+		public URLBuilderWithBaseUrl addQueryParameter(String key, String value);
 
-	/**
-	 * @see #urlBuilder()
-	 * @param url
-	 * @param type
-	 * @param headers
-	 * @return
-	 */
-	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers);
+		public String build();
+	}
 
+	public URLBuilderWithBaseUrl setBaseUrl(String baseUrl);
+
+	public URLBuilderWithBaseUrl setBaseUrl(String scheme, String host, int port);
 }

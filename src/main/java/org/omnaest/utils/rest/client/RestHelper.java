@@ -23,7 +23,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -83,9 +86,25 @@ public class RestHelper
 
 	public static String requestGet(String url, Map<String, String> headers)
 	{
+		Map<String, String> queryParameters = null;
+		return requestGet(url, queryParameters, headers);
+	}
+
+	public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers)
+	{
 		String retval = null;
 		try (CloseableHttpClient httpclient = HttpClients.createDefault())
 		{
+
+			String parameters = Optional.ofNullable(queryParameters)
+										.orElseGet(() -> Collections.emptyMap())
+										.entrySet()
+										.stream()
+										.map(entry -> entry.getKey() + "=" + encodeUrlParameter(entry.getValue()))
+										.collect(Collectors.joining("&"));
+
+			url = url + (StringUtils.isNotBlank(parameters) ? "?" + parameters : "");
+
 			HttpGet httpGet = new HttpGet(url);
 			applyHeaders(headers, httpGet);
 			try (CloseableHttpResponse response = httpclient.execute(httpGet))

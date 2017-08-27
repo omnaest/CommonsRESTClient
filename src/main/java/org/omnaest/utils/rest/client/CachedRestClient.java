@@ -76,7 +76,12 @@ public class CachedRestClient extends AbstractRestClient
 	@Override
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
 	{
-		return this.cache.computeIfAbsent(url + " " + this.encodeHeaders(headers), () -> this.rawRequestGet(url, type), type);
+		return this.cache.computeIfAbsent(this.generateCacheKey(url, headers), () -> this.rawRequestGet(url, type), type);
+	}
+
+	private String generateCacheKey(String url, Map<String, String> headers)
+	{
+		return url + " " + this.encode(headers);
 	}
 
 	protected <T> T rawRequestGet(String url, Class<T> type)
@@ -85,7 +90,7 @@ public class CachedRestClient extends AbstractRestClient
 		return this.restClient.requestGet(url, type);
 	}
 
-	protected String encodeHeaders(Map<String, String> headers)
+	protected String encode(Map<String, String> headers)
 	{
 		return JSONHelper.prettyPrint(headers);
 	}
