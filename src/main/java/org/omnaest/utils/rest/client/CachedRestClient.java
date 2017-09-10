@@ -19,6 +19,7 @@
 package org.omnaest.utils.rest.client;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.cache.Cache;
@@ -76,7 +77,18 @@ public class CachedRestClient extends AbstractRestClient
 	@Override
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
 	{
-		return this.cache.computeIfAbsent(this.generateCacheKey(url, headers), () -> this.rawRequestGet(url, type), type);
+		LOG.info("Request to url: " + url);
+		AtomicBoolean cached = new AtomicBoolean(true);
+		T retval = this.cache.computeIfAbsent(this.generateCacheKey(url, headers), () ->
+		{
+			cached.set(false);
+			return this.rawRequestGet(url, type);
+		}, type);
+		if (cached.get())
+		{
+			LOG.info("Cached");
+		}
+		return retval;
 	}
 
 	private String generateCacheKey(String url, Map<String, String> headers)
