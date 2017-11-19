@@ -22,8 +22,6 @@ import java.util.Map;
 
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.MapUtils;
-import org.omnaest.utils.rest.client.RestHelper.Proxy;
-import org.omnaest.utils.rest.client.RestHelper.RequestOptions;
 
 /**
  * @see RestClient
@@ -32,8 +30,6 @@ import org.omnaest.utils.rest.client.RestHelper.RequestOptions;
  */
 public class JSONRestClient extends AbstractRestClient
 {
-	private Proxy proxy = null;
-
 	@Override
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
 	{
@@ -41,13 +37,7 @@ public class JSONRestClient extends AbstractRestClient
 							.put("Accept", "application/json;charset=utf-8")
 							.putAll(headers)
 							.build();
-		return JSONHelper.readFromString(RestHelper.requestGet(url, headers, new RequestOptions().setProxy(this.proxy)), type);
+		return JSONHelper.readFromString(RestHelper.requestGet(url, headers, this.createRequestOptions()), type);
 	}
 
-	@Override
-	public RestClient withProxy(String host, int port)
-	{
-		this.proxy = new RestHelper.Proxy(host, port);
-		return this;
-	}
 }

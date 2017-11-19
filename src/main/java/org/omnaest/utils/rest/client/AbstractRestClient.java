@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
+import org.omnaest.utils.cache.Cache;
+import org.omnaest.utils.rest.client.RestHelper.RequestOptions;
 
 /**
  * @see RestClient
@@ -34,6 +36,7 @@ import org.apache.commons.lang.StringUtils;
  */
 public abstract class AbstractRestClient implements RestClient
 {
+	protected Proxy proxy = null;
 
 	public AbstractRestClient()
 	{
@@ -62,8 +65,7 @@ public abstract class AbstractRestClient implements RestClient
 				try
 				{
 					return this.setBaseUrl(new URI(scheme, userInfo, host, port, path, query, fragment).toString());
-				}
-				catch (URISyntaxException e)
+				} catch (URISyntaxException e)
 				{
 					throw new IllegalArgumentException("Syntax error in url for " + scheme + " " + host + " " + port, e);
 				}
@@ -94,8 +96,7 @@ public abstract class AbstractRestClient implements RestClient
 							sb.append((StringUtils.isNotBlank(parameters) ? "?" + parameters : ""));
 
 							return new URI(sb.toString()).toString();
-						}
-						catch (URISyntaxException e)
+						} catch (URISyntaxException e)
 						{
 							throw new IllegalArgumentException("Illegal syntax of url: " + sb.toString(), e);
 						}
@@ -119,6 +120,31 @@ public abstract class AbstractRestClient implements RestClient
 			}
 		};
 
+	}
+
+	@Override
+	public RestClient withProxy(Proxy proxy)
+	{
+		this.proxy = proxy;
+		return this;
+	}
+
+	protected RequestOptions createRequestOptions()
+	{
+		return new RequestOptions().setProxy(this.proxy != null ? new RestHelper.Proxy(this.proxy.getHost(), this.proxy.getPort()) : null);
+	}
+
+	@Override
+	public RestClient withCache(Cache cache)
+	{
+		if (cache != null)
+		{
+			return new CachedRestClient(this, cache);
+		}
+		else
+		{
+			return this;
+		}
 	}
 
 }

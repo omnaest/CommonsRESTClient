@@ -20,6 +20,8 @@ package org.omnaest.utils.rest.client;
 
 import java.util.Map;
 
+import org.omnaest.utils.cache.Cache;
+
 /**
  * @see XMLRestClient
  * @see JSONRestClient
@@ -54,7 +56,48 @@ public interface RestClient
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers);
 
 	/**
-	 * Enabled an intermediate proxy to be set for the requests
+	 * @see FiddlerLocalhostProxy
+	 * @author omnaest
+	 */
+	public static class Proxy
+	{
+		private String	host;
+		private int		port;
+
+		public Proxy(String host, int port)
+		{
+			super();
+			this.host = host;
+			this.port = port;
+		}
+
+		public String getHost()
+		{
+			return host;
+		}
+
+		public int getPort()
+		{
+			return port;
+		}
+
+	}
+
+	/**
+	 * {@link Proxy} using localhost:8888
+	 * 
+	 * @author omnaest
+	 */
+	public static class FiddlerLocalhostProxy extends Proxy
+	{
+		public FiddlerLocalhostProxy()
+		{
+			super("localhost", 8888);
+		}
+	}
+
+	/**
+	 * Enabled an intermediate {@link Proxy} to be set for the requests
 	 * <br>
 	 * <br>
 	 * An example is the fiddler web debugger which uses port 8888
@@ -63,6 +106,13 @@ public interface RestClient
 	 * @param port
 	 * @return
 	 */
-	public RestClient withProxy(String host, int port);
+	public RestClient withProxy(Proxy proxy);
+
+	/**
+	 * Returns a {@link RestClient} using a given {@link Cache}. If null is given, no cache is applied.
+	 * 
+	 * @return
+	 */
+	public RestClient withCache(Cache cache);
 
 }

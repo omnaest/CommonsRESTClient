@@ -92,9 +92,9 @@ public class CachedRestClient extends AbstractRestClient
 	}
 
 	@Override
-	public RestClient withProxy(String host, int port)
+	public RestClient withProxy(Proxy proxy)
 	{
-		return this.restClient.withProxy(host, port);
+		return this.restClient.withProxy(proxy);
 	}
 
 	private String generateCacheKey(String url, Map<String, String> headers)
