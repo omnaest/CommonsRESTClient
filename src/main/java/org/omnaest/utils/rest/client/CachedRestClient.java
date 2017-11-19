@@ -91,6 +91,12 @@ public class CachedRestClient extends AbstractRestClient
 		return retval;
 	}
 
+	@Override
+	public RestClient withProxy(String host, int port)
+	{
+		return this.restClient.withProxy(host, port);
+	}
+
 	private String generateCacheKey(String url, Map<String, String> headers)
 	{
 		return url + " " + this.encode(headers);

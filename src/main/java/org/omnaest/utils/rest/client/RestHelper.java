@@ -21,6 +21,7 @@ package org.omnaest.utils.rest.client;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +29,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.config.RequestConfig.Builder;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -66,13 +70,58 @@ public class RestHelper
 
 	}
 
+	public static class RequestOptions
+	{
+		private Proxy proxy;
+
+		public Proxy getProxy()
+		{
+			return this.proxy;
+		}
+
+		public RequestOptions setProxy(Proxy proxy)
+		{
+			this.proxy = proxy;
+			return this;
+		}
+
+		public boolean hasProxy()
+		{
+			return this.proxy != null;
+		}
+
+	}
+
+	public static class Proxy
+	{
+		private String	host;
+		private int		port;
+
+		public Proxy(String host, int port)
+		{
+			super();
+			this.host = host;
+			this.port = port;
+		}
+
+		public String getHost()
+		{
+			return this.host;
+		}
+
+		public int getPort()
+		{
+			return this.port;
+		}
+
+	}
+
 	public static String encodeUrlParameter(String parameter)
 	{
 		try
 		{
 			return URLEncoder.encode(parameter, "UTF-8");
-		}
-		catch (UnsupportedEncodingException e)
+		} catch (UnsupportedEncodingException e)
 		{
 			throw new RuntimeException(e);
 		}
@@ -87,10 +136,17 @@ public class RestHelper
 	public static String requestGet(String url, Map<String, String> headers)
 	{
 		Map<String, String> queryParameters = null;
-		return requestGet(url, queryParameters, headers);
+		RequestOptions options = null;
+		return requestGet(url, queryParameters, headers, options);
 	}
 
-	public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers)
+	public static String requestGet(String url, Map<String, String> headers, RequestOptions options)
+	{
+		Map<String, String> queryParameters = null;
+		return requestGet(url, queryParameters, headers, options);
+	}
+
+	public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options)
 	{
 		String retval = null;
 		try (CloseableHttpClient httpclient = HttpClients.createDefault())
@@ -107,6 +163,7 @@ public class RestHelper
 
 			HttpGet httpGet = new HttpGet(url);
 			applyHeaders(headers, httpGet);
+			applyOptions(options, httpGet);
 			try (CloseableHttpResponse response = httpclient.execute(httpGet))
 			{
 				HttpEntity entity = response.getEntity();
@@ -118,18 +175,33 @@ public class RestHelper
 					throw new RESTAccessExeption(statusCode);
 				}
 
-				retval = EntityUtils.toString(entity, "utf-8");
-			}
-			catch (IOException e)
+				retval = EntityUtils.toString(entity, StandardCharsets.UTF_8);
+			} catch (IOException e)
 			{
 				LOG.error("", e);
 			}
-		}
-		catch (IOException e)
+		} catch (IOException e)
 		{
 			LOG.error("", e);
 		}
 		return retval;
+	}
+
+	private static void applyOptions(RequestOptions options, HttpGet httpGet)
+	{
+		if (options != null)
+		{
+			Builder builder = RequestConfig.custom();
+			if (options.hasProxy())
+			{
+				builder.setProxy(new HttpHost(	options	.getProxy()
+														.getHost(),
+												options	.getProxy()
+														.getPort()));
+			}
+			RequestConfig requestConfig = builder.build();
+			httpGet.setConfig(requestConfig);
+		}
 	}
 
 	private static void applyHeaders(Map<String, String> headers, HttpGet httpGet)

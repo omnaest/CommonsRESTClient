@@ -53,4 +53,16 @@ public interface RestClient
 	 */
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers);
 
+	/**
+	 * Enabled an intermediate proxy to be set for the requests
+	 * <br>
+	 * <br>
+	 * An example is the fiddler web debugger which uses port 8888
+	 * 
+	 * @param host
+	 * @param port
+	 * @return
+	 */
+	public RestClient withProxy(String host, int port);
+
 }

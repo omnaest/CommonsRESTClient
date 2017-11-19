@@ -21,6 +21,8 @@ package org.omnaest.utils.rest.client;
 import java.util.Map;
 
 import org.omnaest.utils.XMLHelper;
+import org.omnaest.utils.rest.client.RestHelper.Proxy;
+import org.omnaest.utils.rest.client.RestHelper.RequestOptions;
 
 /**
  * @see RestClient
@@ -29,11 +31,18 @@ import org.omnaest.utils.XMLHelper;
  */
 public class XMLRestClient extends AbstractRestClient
 {
+	private Proxy proxy = null;
 
 	@Override
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
 	{
-		return XMLHelper.parse(RestHelper.requestGet(url, headers), type);
+		return XMLHelper.parse(RestHelper.requestGet(url, headers, new RequestOptions().setProxy(this.proxy)), type);
 	}
 
+	@Override
+	public RestClient withProxy(String host, int port)
+	{
+		this.proxy = new RestHelper.Proxy(host, port);
+		return this;
+	}
 }
