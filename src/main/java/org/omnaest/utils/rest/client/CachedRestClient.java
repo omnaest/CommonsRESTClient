@@ -21,9 +21,9 @@ package org.omnaest.utils.rest.client;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.omnaest.utils.CacheUtils;
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.cache.Cache;
-import org.omnaest.utils.cache.CacheUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
