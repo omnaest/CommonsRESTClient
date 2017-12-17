@@ -78,17 +78,31 @@ public class CachedRestClient extends AbstractRestClient
 	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
 	{
 		LOG.info("Request to url: " + url);
+
 		AtomicBoolean cached = new AtomicBoolean(true);
-		T retval = this.cache.computeIfAbsent(this.generateCacheKey(url, headers), () ->
+		String key = this.generateCacheKey(url, headers);
+		try
 		{
-			cached.set(false);
-			return this.rawRequestGet(url, type);
-		}, type);
-		if (cached.get())
+			//
+			T retval = this.cache.computeIfAbsent(key, () ->
+			{
+				cached.set(false);
+				return this.rawRequestGet(url, type);
+			}, type);
+
+			//
+			if (cached.get())
+			{
+				LOG.info("Cached");
+			}
+
+			//
+			return retval;
+		} catch (Exception e)
 		{
-			LOG.info("Cached");
+			this.cache.remove(key);
+			throw e;
 		}
-		return retval;
 	}
 
 	@Override
