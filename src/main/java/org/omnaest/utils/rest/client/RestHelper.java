@@ -46,172 +46,175 @@ import org.slf4j.LoggerFactory;
  */
 public class RestHelper
 {
-	private static Logger LOG = LoggerFactory.getLogger(RestHelper.class);
+    private static Logger LOG = LoggerFactory.getLogger(RestHelper.class);
 
-	/**
-	 * @see #getStatusCode()
-	 * @author Omnaest
-	 */
-	public static class RESTAccessExeption extends RuntimeException
-	{
-		private static final long	serialVersionUID	= 13836403364765387L;
-		private int					statusCode;
+    /**
+     * @see #getStatusCode()
+     * @author Omnaest
+     */
+    public static class RESTAccessExeption extends RuntimeException
+    {
+        private static final long serialVersionUID = 13836403364765387L;
+        private int               statusCode;
 
-		public RESTAccessExeption(int statusCode)
-		{
-			super("REST access failed with a non 2xx status code: " + statusCode);
-			this.statusCode = statusCode;
-		}
+        public RESTAccessExeption(int statusCode)
+        {
+            super("REST access failed with a non 2xx status code: " + statusCode);
+            this.statusCode = statusCode;
+        }
 
-		public int getStatusCode()
-		{
-			return this.statusCode;
-		}
+        public int getStatusCode()
+        {
+            return this.statusCode;
+        }
 
-	}
+    }
 
-	public static class RequestOptions
-	{
-		private Proxy proxy;
+    public static class RequestOptions
+    {
+        private Proxy proxy;
 
-		public Proxy getProxy()
-		{
-			return this.proxy;
-		}
+        public Proxy getProxy()
+        {
+            return this.proxy;
+        }
 
-		public RequestOptions setProxy(Proxy proxy)
-		{
-			this.proxy = proxy;
-			return this;
-		}
+        public RequestOptions setProxy(Proxy proxy)
+        {
+            this.proxy = proxy;
+            return this;
+        }
 
-		public boolean hasProxy()
-		{
-			return this.proxy != null;
-		}
+        public boolean hasProxy()
+        {
+            return this.proxy != null;
+        }
 
-	}
+    }
 
-	public static class Proxy
-	{
-		private String	host;
-		private int		port;
+    public static class Proxy
+    {
+        private String host;
+        private int    port;
 
-		public Proxy(String host, int port)
-		{
-			super();
-			this.host = host;
-			this.port = port;
-		}
+        public Proxy(String host, int port)
+        {
+            super();
+            this.host = host;
+            this.port = port;
+        }
 
-		public String getHost()
-		{
-			return this.host;
-		}
+        public String getHost()
+        {
+            return this.host;
+        }
 
-		public int getPort()
-		{
-			return this.port;
-		}
+        public int getPort()
+        {
+            return this.port;
+        }
 
-	}
+    }
 
-	public static String encodeUrlParameter(String parameter)
-	{
-		try
-		{
-			return URLEncoder.encode(parameter, "UTF-8");
-		} catch (UnsupportedEncodingException e)
-		{
-			throw new RuntimeException(e);
-		}
-	}
+    public static String encodeUrlParameter(String parameter)
+    {
+        try
+        {
+            return URLEncoder.encode(parameter, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
 
-	public static String requestGet(String url)
-	{
-		Map<String, String> headers = Collections.emptyMap();
-		return requestGet(url, headers);
-	}
+    public static String requestGet(String url)
+    {
+        Map<String, String> headers = Collections.emptyMap();
+        return requestGet(url, headers);
+    }
 
-	public static String requestGet(String url, Map<String, String> headers)
-	{
-		Map<String, String> queryParameters = null;
-		RequestOptions options = null;
-		return requestGet(url, queryParameters, headers, options);
-	}
+    public static String requestGet(String url, Map<String, String> headers)
+    {
+        Map<String, String> queryParameters = null;
+        RequestOptions options = null;
+        return requestGet(url, queryParameters, headers, options);
+    }
 
-	public static String requestGet(String url, Map<String, String> headers, RequestOptions options)
-	{
-		Map<String, String> queryParameters = null;
-		return requestGet(url, queryParameters, headers, options);
-	}
+    public static String requestGet(String url, Map<String, String> headers, RequestOptions options)
+    {
+        Map<String, String> queryParameters = null;
+        return requestGet(url, queryParameters, headers, options);
+    }
 
-	public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options)
-	{
-		String retval = null;
-		try (CloseableHttpClient httpclient = HttpClients.createDefault())
-		{
+    public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options)
+    {
+        String retval = null;
+        try (CloseableHttpClient httpclient = HttpClients.createDefault())
+        {
 
-			String parameters = Optional.ofNullable(queryParameters)
-										.orElseGet(() -> Collections.emptyMap())
-										.entrySet()
-										.stream()
-										.map(entry -> entry.getKey() + "=" + encodeUrlParameter(entry.getValue()))
-										.collect(Collectors.joining("&"));
+            String parameters = Optional.ofNullable(queryParameters)
+                                        .orElseGet(() -> Collections.emptyMap())
+                                        .entrySet()
+                                        .stream()
+                                        .map(entry -> entry.getKey() + "=" + encodeUrlParameter(entry.getValue()))
+                                        .collect(Collectors.joining("&"));
 
-			url = url + (StringUtils.isNotBlank(parameters) ? "?" + parameters : "");
+            url = url + (StringUtils.isNotBlank(parameters) ? "?" + parameters : "");
 
-			HttpGet httpGet = new HttpGet(url);
-			applyHeaders(headers, httpGet);
-			applyOptions(options, httpGet);
-			try (CloseableHttpResponse response = httpclient.execute(httpGet))
-			{
-				HttpEntity entity = response.getEntity();
+            HttpGet httpGet = new HttpGet(url);
+            applyHeaders(headers, httpGet);
+            applyOptions(options, httpGet);
+            try (CloseableHttpResponse response = httpclient.execute(httpGet))
+            {
+                HttpEntity entity = response.getEntity();
 
-				int statusCode = response	.getStatusLine()
-											.getStatusCode();
-				if (statusCode < 200 || statusCode > 299)
-				{
-					throw new RESTAccessExeption(statusCode);
-				}
+                int statusCode = response.getStatusLine()
+                                         .getStatusCode();
+                if (statusCode < 200 || statusCode > 299)
+                {
+                    throw new RESTAccessExeption(statusCode);
+                }
 
-				retval = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-			} catch (IOException e)
-			{
-				LOG.error("", e);
-			}
-		} catch (IOException e)
-		{
-			LOG.error("", e);
-		}
-		return retval;
-	}
+                retval = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
+            }
+            catch (IOException e)
+            {
+                LOG.error("", e);
+            }
+        }
+        catch (IOException e)
+        {
+            LOG.error("", e);
+        }
+        return retval;
+    }
 
-	private static void applyOptions(RequestOptions options, HttpGet httpGet)
-	{
-		if (options != null)
-		{
-			Builder builder = RequestConfig.custom();
-			if (options.hasProxy())
-			{
-				builder.setProxy(new HttpHost(	options	.getProxy()
-														.getHost(),
-												options	.getProxy()
-														.getPort()));
-			}
-			RequestConfig requestConfig = builder.build();
-			httpGet.setConfig(requestConfig);
-		}
-	}
+    private static void applyOptions(RequestOptions options, HttpGet httpGet)
+    {
+        if (options != null)
+        {
+            Builder builder = RequestConfig.custom();
+            if (options.hasProxy())
+            {
+                builder.setProxy(new HttpHost(options.getProxy()
+                                                     .getHost(),
+                                              options.getProxy()
+                                                     .getPort()));
+            }
+            RequestConfig requestConfig = builder.build();
+            httpGet.setConfig(requestConfig);
+        }
+    }
 
-	private static void applyHeaders(Map<String, String> headers, HttpGet httpGet)
-	{
-		if (headers != null)
-		{
-			for (String name : headers.keySet())
-			{
-				httpGet.addHeader(name, headers.get(name));
-			}
-		}
-	}
+    private static void applyHeaders(Map<String, String> headers, HttpGet httpGet)
+    {
+        if (headers != null)
+        {
+            for (String name : headers.keySet())
+            {
+                httpGet.addHeader(name, headers.get(name));
+            }
+        }
+    }
 }
