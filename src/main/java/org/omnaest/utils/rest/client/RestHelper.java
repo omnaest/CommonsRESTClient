@@ -176,7 +176,7 @@ public class RestHelper
                     throw new RESTAccessExeption(statusCode);
                 }
 
-                retval = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
+                retval = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
             }
             catch (IOException e)
             {
