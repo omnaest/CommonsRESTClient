@@ -29,9 +29,9 @@ import org.omnaest.utils.XMLHelper;
  */
 public class XMLRestClient extends AbstractRestClient
 {
-	@Override
-	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
-	{
-		return XMLHelper.parse(RestHelper.requestGet(url, headers, this.createRequestOptions()), type);
-	}
+    @Override
+    public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
+    {
+        return XMLHelper.parse(RestHelper.requestGet(url, headers, this.createRequestOptions()), type);
+    }
 }

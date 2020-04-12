@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.omnaest.utils.CacheUtils;
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.cache.Cache;
+import org.omnaest.utils.rest.client.RestHelper.RESTAccessExeption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,91 +41,107 @@ import org.slf4j.LoggerFactory;
  */
 public class CachedRestClient extends AbstractRestClient
 {
-	private static final Logger LOG = LoggerFactory.getLogger(CachedRestClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CachedRestClient.class);
 
-	private RestClient	restClient;
-	private Cache		cache;
+    private RestClient restClient;
+    private Cache      cache;
 
-	public CachedRestClient(RestClient restClient, Cache cache)
-	{
-		super();
-		this.restClient = restClient;
-		this.cache = cache;
-	}
+    public CachedRestClient(RestClient restClient, Cache cache)
+    {
+        super();
+        this.restClient = restClient;
+        this.cache = cache;
+    }
 
-	/**
-	 * Uses a {@link CacheUtils#newConcurrentInMemoryCache()} as default cache
-	 *
-	 * @param restClient
-	 */
-	public CachedRestClient(RestClient restClient)
-	{
-		this(restClient, CacheUtils.newConcurrentInMemoryCache());
-	}
+    /**
+     * Uses a {@link CacheUtils#newConcurrentInMemoryCache()} as default cache
+     *
+     * @param restClient
+     */
+    public CachedRestClient(RestClient restClient)
+    {
+        this(restClient, CacheUtils.newConcurrentInMemoryCache());
+    }
 
-	public CachedRestClient setCache(Cache cache)
-	{
-		if (cache != null)
-		{
-			Cache oldCache = this.cache;
-			CacheUtils.populateCacheContentToNewCache(oldCache, cache);
+    public CachedRestClient setCache(Cache cache)
+    {
+        if (cache != null)
+        {
+            Cache oldCache = this.cache;
+            CacheUtils.populateCacheContentToNewCache(oldCache, cache);
 
-			this.cache = cache;
-		}
-		return this;
-	}
+            this.cache = cache;
+        }
+        return this;
+    }
 
-	@Override
-	public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
-	{
-		LOG.info("Request to url: " + url);
+    @Override
+    public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
+    {
+        LOG.trace("Request to url: " + url);
 
-		AtomicBoolean cached = new AtomicBoolean(true);
-		String key = this.generateCacheKey(url, headers);
-		try
-		{
-			//
-			T retval = this.cache.computeIfAbsent(key, () ->
-			{
-				cached.set(false);
-				return this.rawRequestGet(url, type);
-			}, type);
+        AtomicBoolean cached = new AtomicBoolean(true);
+        String key = this.generateCacheKey(url, headers);
+        try
+        {
+            //
+            T retval = this.cache.computeIfAbsent(key, () ->
+            {
+                cached.set(false);
+                return this.rawRequestGet(url, type);
+            }, type);
 
-			//
-			if (cached.get())
-			{
-				LOG.info("Cached");
-			}
+            //
+            if (cached.get())
+            {
+                LOG.trace("Cached");
+            }
 
-			//
-			return retval;
-		} catch (Exception e)
-		{
-			this.cache.remove(key);
-			throw e;
-		}
-	}
+            //
+            return retval;
+        }
+        catch (RESTAccessExeption e)
+        {
+            int statusCode = e.getStatusCode();
+            if (statusCode == 400)
+            {
+                this.cache.put(url, null);
+                return null;
+            }
+            else
+            {
+                this.cache.remove(key);
+                throw e;
+            }
+        }
 
-	@Override
-	public RestClient withProxy(Proxy proxy)
-	{
-		return this.restClient.withProxy(proxy);
-	}
+        catch (Exception e)
+        {
+            this.cache.remove(key);
+            throw e;
+        }
+    }
 
-	private String generateCacheKey(String url, Map<String, String> headers)
-	{
-		return url + " " + this.encode(headers);
-	}
+    @Override
+    public RestClient withProxy(Proxy proxy)
+    {
+        return this.restClient.withProxy(proxy);
+    }
 
-	protected <T> T rawRequestGet(String url, Class<T> type)
-	{
-		LOG.debug("Executing raw request to " + url);
-		return this.restClient.requestGet(url, type);
-	}
+    private String generateCacheKey(String url, Map<String, String> headers)
+    {
+        return url + " " + this.encode(headers);
+    }
 
-	protected String encode(Map<String, String> headers)
-	{
-		return JSONHelper.prettyPrint(headers);
-	}
+    protected <T> T rawRequestGet(String url, Class<T> type)
+    {
+        LOG.trace("Executing raw request to " + url);
+        return this.restClient.requestGet(url, type);
+    }
+
+    protected String encode(Map<String, String> headers)
+    {
+        return JSONHelper.prettyPrint(headers);
+    }
 
 }

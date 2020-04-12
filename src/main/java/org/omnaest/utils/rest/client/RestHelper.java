@@ -21,21 +21,37 @@ package org.omnaest.utils.rest.client;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.config.RequestConfig.Builder;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,11 +72,13 @@ public class RestHelper
     {
         private static final long serialVersionUID = 13836403364765387L;
         private int               statusCode;
+        private String            content;
 
-        public RESTAccessExeption(int statusCode)
+        public RESTAccessExeption(int statusCode, String content)
         {
-            super("REST access failed with a non 2xx status code: " + statusCode);
+            super("REST access failed with a non 2xx status code: " + statusCode + " " + StringUtils.defaultString(content));
             this.statusCode = statusCode;
+            this.content = content;
         }
 
         public int getStatusCode()
@@ -68,11 +86,41 @@ public class RestHelper
             return this.statusCode;
         }
 
+        public String getContent()
+        {
+            return this.content;
+        }
+
+    }
+
+    public static class RESTConnectException extends RuntimeException
+    {
+        /**
+         * 
+         */
+        private static final long serialVersionUID = 3834045402416638779L;
+
+        public RESTConnectException(Throwable cause)
+        {
+            super(cause);
+        }
+    }
+
+    public static interface ResponseListener
+    {
+        public void observe(HttpResponse response);
     }
 
     public static class RequestOptions
     {
-        private Proxy proxy;
+        private Proxy                  proxy                         = null;
+        private Charset                acceptCharset                 = StandardCharsets.UTF_8;
+        private String                 contentType                   = null;
+        private boolean                ignoreSSLHostnameVerification = false;
+        private List<ResponseListener> responseListeners             = new ArrayList<>();
+        private boolean                disableRedirects              = false;
+
+        private CookieStore cookieStore = new BasicCookieStore();
 
         public Proxy getProxy()
         {
@@ -88,6 +136,86 @@ public class RestHelper
         public boolean hasProxy()
         {
             return this.proxy != null;
+        }
+
+        public Charset getAcceptCharset()
+        {
+            return this.acceptCharset;
+        }
+
+        public RequestOptions setAcceptCharset(Charset acceptCharset)
+        {
+            this.acceptCharset = acceptCharset;
+            return this;
+        }
+
+        public RequestOptions setIgnoreSSLHostnameVerification(boolean ignoreSSLHostnameVerification)
+        {
+            this.ignoreSSLHostnameVerification = ignoreSSLHostnameVerification;
+            return this;
+        }
+
+        public boolean isIgnoreSSLHostnameVerification()
+        {
+            return this.ignoreSSLHostnameVerification;
+        }
+
+        public boolean hasResponseListeners()
+        {
+            return !this.responseListeners.isEmpty();
+        }
+
+        public List<ResponseListener> getResponseListeners()
+        {
+            return this.responseListeners;
+        }
+
+        public RequestOptions addResponseListener(ResponseListener responseListener)
+        {
+            this.responseListeners.add(responseListener);
+            return this;
+        }
+
+        public boolean isDisableRedirects()
+        {
+            return this.disableRedirects;
+        }
+
+        public RequestOptions disableRedirects()
+        {
+            this.disableRedirects = true;
+            return this;
+        }
+
+        public String getContentType()
+        {
+            return this.contentType;
+        }
+
+        public RequestOptions setContentType(String contentType)
+        {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public RequestOptions addCookie(String name, String value, String domain, String path)
+        {
+            BasicClientCookie cookie = new BasicClientCookie(name, value);
+            cookie.setDomain(domain);
+            cookie.setPath(path);
+            this.cookieStore.addCookie(cookie);
+            return this;
+        }
+
+        public CookieStore getCookieStore()
+        {
+            return this.cookieStore;
+        }
+
+        public RequestOptions setCookieStore(CookieStore cookieStore)
+        {
+            this.cookieStore = cookieStore;
+            return this;
         }
 
     }
@@ -134,6 +262,12 @@ public class RestHelper
         return requestGet(url, headers);
     }
 
+    public static String requestGet(String url, RequestOptions options)
+    {
+        Map<String, String> headers = Collections.emptyMap();
+        return requestGet(url, headers, options);
+    }
+
     public static String requestGet(String url, Map<String, String> headers)
     {
         Map<String, String> queryParameters = null;
@@ -150,9 +284,8 @@ public class RestHelper
     public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options)
     {
         String retval = null;
-        try (CloseableHttpClient httpclient = HttpClients.createDefault())
+        try (CloseableHttpClient httpclient = createHttpClient(options))
         {
-
             String parameters = Optional.ofNullable(queryParameters)
                                         .orElseGet(() -> Collections.emptyMap())
                                         .entrySet()
@@ -169,31 +302,147 @@ public class RestHelper
             {
                 HttpEntity entity = response.getEntity();
 
+                retval = entity != null
+                        ? EntityUtils.toString(entity,
+                                               options != null && options.getAcceptCharset() != null ? options.getAcceptCharset() : StandardCharsets.UTF_8)
+                        : "";
+
+                applyResponseListeners(options, response);
+
                 int statusCode = response.getStatusLine()
                                          .getStatusCode();
-                if (statusCode < 200 || statusCode > 299)
+                if ((statusCode < 200 || statusCode > 299) && (statusCode != 302))
                 {
-                    throw new RESTAccessExeption(statusCode);
+                    throw new RESTAccessExeption(statusCode, retval);
                 }
 
-                retval = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
             }
             catch (IOException e)
             {
-                LOG.error("", e);
+                LOG.debug("", e);
+                throw new RESTConnectException(e);
             }
         }
         catch (IOException e)
         {
-            LOG.error("", e);
+            LOG.debug("", e);
+            throw new RESTConnectException(e);
         }
         return retval;
     }
 
-    private static void applyOptions(RequestOptions options, HttpGet httpGet)
+    public static String requestPut(String url, String body)
+    {
+        RequestOptions options = new RequestOptions();
+        return requestPut(url, body, options);
+    }
+
+    public static String requestPut(String url, String body, RequestOptions options)
+    {
+        Map<String, String> queryParameters = Collections.emptyMap();
+        Map<String, String> headers = Collections.emptyMap();
+        return requestPut(url, queryParameters, headers, body, options);
+    }
+
+    public static String requestPut(String url, Map<String, String> queryParameters, Map<String, String> headers, String body, RequestOptions options)
+    {
+        String retval = null;
+        try (CloseableHttpClient httpclient = createHttpClient(options))
+        {
+            String parameters = Optional.ofNullable(queryParameters)
+                                        .orElseGet(() -> Collections.emptyMap())
+                                        .entrySet()
+                                        .stream()
+                                        .map(entry -> entry.getKey() + "=" + encodeUrlParameter(entry.getValue()))
+                                        .collect(Collectors.joining("&"));
+
+            url = url + (StringUtils.isNotBlank(parameters) ? "?" + parameters : "");
+
+            HttpPut httpPut = new HttpPut(url);
+            httpPut.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
+            applyHeaders(headers, httpPut);
+            applyOptions(options, httpPut);
+            try (CloseableHttpResponse response = httpclient.execute(httpPut))
+            {
+                HttpEntity entity = response.getEntity();
+
+                retval = entity != null
+                        ? EntityUtils.toString(entity,
+                                               options != null && options.getAcceptCharset() != null ? options.getAcceptCharset() : StandardCharsets.UTF_8)
+                        : "";
+
+                applyResponseListeners(options, response);
+
+                int statusCode = response.getStatusLine()
+                                         .getStatusCode();
+                if ((statusCode < 200 || statusCode > 299) && (statusCode != 302))
+                {
+                    throw new RESTAccessExeption(statusCode, retval);
+                }
+
+            }
+            catch (IOException e)
+            {
+                LOG.debug("", e);
+                throw new RESTConnectException(e);
+            }
+        }
+        catch (IOException e)
+        {
+            LOG.debug("", e);
+            throw new RESTConnectException(e);
+        }
+        return retval;
+    }
+
+    private static void applyResponseListeners(RequestOptions options, CloseableHttpResponse response)
+    {
+        if (options != null && options.hasResponseListeners())
+        {
+            List<ResponseListener> responseListeners = options.getResponseListeners();
+            for (ResponseListener responseListener : responseListeners)
+            {
+                responseListener.observe(response);
+            }
+        }
+    }
+
+    private static CloseableHttpClient createHttpClient(RequestOptions options)
+    {
+        CloseableHttpClient retval;
+        if (options != null && options.isIgnoreSSLHostnameVerification())
+        {
+            try
+            {
+                SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, (chain, authType) -> true)
+                                                               .build();
+
+                retval = HttpClients.custom()
+                                    .setDefaultCookieStore(options.getCookieStore())
+                                    .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                                    .setSSLContext(sslContext)
+                                    .setSSLSocketFactory(new SSLConnectionSocketFactory(sslContext,
+                                                                                        new String[] { "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" },
+                                                                                        null, NoopHostnameVerifier.INSTANCE))
+                                    .build();
+            }
+            catch (Exception e)
+            {
+                throw new IllegalStateException(e);
+            }
+        }
+        else
+        {
+            retval = HttpClients.createDefault();
+        }
+        return retval;
+    }
+
+    private static void applyOptions(RequestOptions options, HttpRequestBase httpRequest)
     {
         if (options != null)
         {
+            //
             Builder builder = RequestConfig.custom();
             if (options.hasProxy())
             {
@@ -202,12 +451,32 @@ public class RestHelper
                                               options.getProxy()
                                                      .getPort()));
             }
+
+            if (options.isDisableRedirects())
+            {
+                builder.setRedirectsEnabled(false);
+            }
+
             RequestConfig requestConfig = builder.build();
-            httpGet.setConfig(requestConfig);
+            httpRequest.setConfig(requestConfig);
+
+            //
+            Charset acceptCharset = options.getAcceptCharset();
+            if (acceptCharset != null)
+            {
+                httpRequest.setHeader("Accept-Charset", acceptCharset.name());
+            }
+
+            //
+            String contentType = options.getContentType();
+            if (contentType != null)
+            {
+                httpRequest.setHeader("Content-Type", contentType);
+            }
         }
     }
 
-    private static void applyHeaders(Map<String, String> headers, HttpGet httpGet)
+    private static void applyHeaders(Map<String, String> headers, HttpRequestBase httpGet)
     {
         if (headers != null)
         {
@@ -216,5 +485,75 @@ public class RestHelper
                 httpGet.addHeader(name, headers.get(name));
             }
         }
+    }
+
+    public static String requestPost(String url, String body, RequestOptions options)
+    {
+        Map<String, String> headers = Collections.emptyMap();
+        return requestPost(url, body, headers, options);
+    }
+
+    public static String requestPost(String url, String body, Map<String, String> headers, RequestOptions options)
+    {
+        Map<String, String> queryParameters = Collections.emptyMap();
+        return requestPost(url, queryParameters, body, headers, options);
+    }
+
+    public static String requestPost(String url, Map<String, String> queryParameters, String body, Map<String, String> headers, RequestOptions options)
+    {
+        String retval = null;
+        try (CloseableHttpClient httpclient = createHttpClient(options))
+        {
+            String parameters = Optional.ofNullable(queryParameters)
+                                        .orElseGet(() -> Collections.emptyMap())
+                                        .entrySet()
+                                        .stream()
+                                        .map(entry -> entry.getKey() + "=" + encodeUrlParameter(entry.getValue()))
+                                        .collect(Collectors.joining("&"));
+
+            url = url + (StringUtils.isNotBlank(parameters) ? "?" + parameters : "");
+
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
+            applyHeaders(headers, httpPost);
+            applyOptions(options, httpPost);
+
+            try (CloseableHttpResponse response = httpclient.execute(httpPost))
+            {
+                HttpEntity entity = response.getEntity();
+
+                retval = entity != null
+                        ? EntityUtils.toString(entity,
+                                               options != null && options.getAcceptCharset() != null ? options.getAcceptCharset() : StandardCharsets.UTF_8)
+                        : "";
+
+                applyResponseListeners(options, response);
+
+                int statusCode = response.getStatusLine()
+                                         .getStatusCode();
+                if ((statusCode < 200 || statusCode > 299) && (statusCode != 302))
+                {
+                    throw new RESTAccessExeption(statusCode, retval);
+                }
+
+            }
+            catch (IOException e)
+            {
+                LOG.debug("", e);
+                throw new RESTConnectException(e);
+            }
+        }
+        catch (IOException e)
+        {
+            LOG.debug("", e);
+            throw new RESTConnectException(e);
+        }
+        return retval;
+
+    }
+
+    public static FormBuilder newFormBuilder()
+    {
+        return new FormBuilder();
     }
 }

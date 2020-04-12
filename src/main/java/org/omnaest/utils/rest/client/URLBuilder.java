@@ -25,34 +25,43 @@ package org.omnaest.utils.rest.client;
  */
 public interface URLBuilder
 {
-	public interface URLBuilderWithBaseUrl
-	{
-		/**
-		 * Adds token of the path which gets encoded accordingly
-		 * 
-		 * @param pathToken
-		 * @return this
-		 */
-		public URLBuilderWithBaseUrl addPathToken(String pathToken);
+    public interface URLBuilderWithBaseUrl
+    {
+        /**
+         * Adds token of the path which gets encoded accordingly
+         * 
+         * @param pathToken
+         * @return this
+         */
+        public URLBuilderWithBaseUrl addPathToken(String pathToken);
 
-		/**
-		 * Adds a query parameter to the url which gets encoded encordingly
-		 * 
-		 * @param key
-		 * @param value
-		 * @return this
-		 */
-		public URLBuilderWithBaseUrl addQueryParameter(String key, String value);
+        /**
+         * Adds a query parameter to the url which gets encoded encordingly
+         * 
+         * @param key
+         * @param value
+         * @return this
+         */
+        public URLBuilderWithBaseUrl addQueryParameter(String key, String value);
 
-		/**
-		 * Returns an url
-		 * 
-		 * @return
-		 */
-		public String build();
-	}
+        /**
+         * Similar to {@link #addQueryParameter(String, String)}
+         * 
+         * @param key
+         * @param value
+         * @return
+         */
+        public URLBuilderWithBaseUrl addQueryParameter(String key, int value);
 
-	public URLBuilderWithBaseUrl setBaseUrl(String baseUrl);
+        /**
+         * Returns an url
+         * 
+         * @return
+         */
+        public String build();
+    }
 
-	public URLBuilderWithBaseUrl setBaseUrl(String scheme, String host, int port);
+    public URLBuilderWithBaseUrl setBaseUrl(String baseUrl);
+
+    public URLBuilderWithBaseUrl setBaseUrl(String scheme, String host, int port);
 }
