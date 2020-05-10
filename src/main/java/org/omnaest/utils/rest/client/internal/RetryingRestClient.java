@@ -1,16 +1,18 @@
-package org.omnaest.utils.rest.client;
+package org.omnaest.utils.rest.client.internal;
 
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.omnaest.utils.cache.Cache;
+import org.omnaest.utils.rest.client.RestClient;
 import org.omnaest.utils.rest.client.RestHelper.RESTAccessExeption;
 import org.omnaest.utils.rest.client.RestHelper.RESTConnectException;
+import org.omnaest.utils.rest.client.URLBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RetryingRestClient implements RestClient
+public class RetryingRestClient extends InternalRestClient
 {
     private static final Logger LOG = LoggerFactory.getLogger(RetryingRestClient.class);
     private RestClient          restClient;
@@ -103,6 +105,12 @@ public class RetryingRestClient implements RestClient
     public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
     {
         return this.execute(() -> this.restClient.requestGet(url, type, headers));
+    }
+
+    @Override
+    public <R, B> R requestPost(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        return this.execute(() -> this.restClient.requestPost(url, body, resultType, headers));
     }
 
     @Override

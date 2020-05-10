@@ -16,7 +16,7 @@
 
 
 */
-package org.omnaest.utils.rest.client;
+package org.omnaest.utils.rest.client.internal;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,18 +31,22 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.omnaest.utils.cache.Cache;
+import org.omnaest.utils.rest.client.RestClient;
+import org.omnaest.utils.rest.client.RestHelper;
 import org.omnaest.utils.rest.client.RestHelper.RequestOptions;
+import org.omnaest.utils.rest.client.URLBuilder;
 
 /**
  * @see RestClient
  * @author Omnaest
  */
-public abstract class AbstractRestClient implements RestClient
+public abstract class AbstractRestClient extends InternalRestClient
 {
     protected Proxy  proxy                         = null;
     private Charset  acceptCharset                 = StandardCharsets.UTF_8;
     private boolean  ignoreSSLHostnameVerification = false;
     protected String acceptMediaType               = null;
+    protected String contentMediaType              = null;
 
     public AbstractRestClient()
     {
@@ -200,6 +204,19 @@ public abstract class AbstractRestClient implements RestClient
     public RestClient withAcceptMediaType(MediaType mediaType)
     {
         return this.withAcceptMediaType(mediaType.getHeaderValue());
+    }
+
+    @Override
+    public RestClient withContentMediaType(String mediaType)
+    {
+        this.contentMediaType = mediaType;
+        return this;
+    }
+
+    @Override
+    public RestClient withContentMediaType(MediaType mediaType)
+    {
+        return this.withContentMediaType(mediaType.getHeaderValue());
     }
 
 }

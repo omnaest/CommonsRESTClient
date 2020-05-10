@@ -16,12 +16,14 @@
 
 
 */
-package org.omnaest.utils.rest.client;
+package org.omnaest.utils.rest.client.internal;
 
 import java.util.Map;
 
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.MapUtils;
+import org.omnaest.utils.rest.client.RestClient;
+import org.omnaest.utils.rest.client.RestHelper;
 
 /**
  * @see RestClient
@@ -47,7 +49,8 @@ public class JSONRestClient extends AbstractRestClient
         return JSONHelper.readFromString(RestHelper.requestGet(url, headers, this.createRequestOptions()), type);
     }
 
-    public <B, R> R requestPost(String url, B body, Class<R> responseType, Map<String, String> headers)
+    @Override
+    public <R, B> R requestPost(String url, B body, Class<R> responseType, Map<String, String> headers)
     {
         return JSONHelper.readFromString(RestHelper.requestPost(url, JSONHelper.serialize(body), headers, this.createRequestOptions()
                                                                                                               .setContentType("application/json")),

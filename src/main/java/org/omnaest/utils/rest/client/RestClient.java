@@ -21,8 +21,14 @@ package org.omnaest.utils.rest.client;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
+import org.omnaest.utils.ReflectionUtils;
 import org.omnaest.utils.cache.Cache;
+import org.omnaest.utils.rest.client.URLBuilder.URLBuilderWithBaseUrl;
+import org.omnaest.utils.rest.client.internal.JSONRestClient;
+import org.omnaest.utils.rest.client.internal.StringRestClient;
+import org.omnaest.utils.rest.client.internal.XMLRestClient;
 
 /**
  * @see XMLRestClient
@@ -56,6 +62,17 @@ public interface RestClient
      * @return
      */
     public <T> T requestGet(String url, Class<T> type, Map<String, String> headers);
+
+    /**
+     * Sends a POST request
+     * 
+     * @param url
+     * @param body
+     * @param resultType
+     * @param headers
+     * @return
+     */
+    public <R, B> R requestPost(String url, B body, Class<R> resultType, Map<String, String> headers);
 
     /**
      * @see FiddlerLocalhostProxy
@@ -117,6 +134,8 @@ public interface RestClient
      */
     public RestClient withCache(Cache cache);
 
+    RestClient withLocalCache(String name);
+
     public RestClient withRetry(int times, long duration, TimeUnit timeUnit);
 
     public RestClient withAcceptCharset(Charset charset);
@@ -134,12 +153,19 @@ public interface RestClient
 
     public RestClient withAcceptMediaType(MediaType mediaType);
 
+    public RestClient withContentMediaType(MediaType mediaType);
+
+    public RestClient withContentMediaType(String mediaType);
+
     public static enum MediaType
     {
         APPLICATION_JSON("application/json"),
         APPLICATION_JSON_UTF8("application/json;charset=utf-8"),
         APPLICATION_XML("application/xml;charset=utf-8"),
         APPLICATION_XML_UTF8("application/xml"),
+        APPLICATION_FORM_URL_ENCODED("application/x-www-form-urlencoded"),
+        TEXT_PLAIN("text/plain"),
+        TEXT_HTML("text/html"),
         ALL("*/*");
 
         private String headerValue;
@@ -156,4 +182,53 @@ public interface RestClient
 
     }
 
+    public static RestClient newJSONRestClient()
+    {
+        return new JSONRestClient();
+    }
+
+    public static RestClient newXMLRestClient()
+    {
+        return new XMLRestClient();
+    }
+
+    public static RestClient newStringRestClient()
+    {
+        return new StringRestClient();
+    }
+
+    public static RestClient newRestClient(Class<? extends RestClient> type)
+    {
+        return ReflectionUtils.newInstance(type);
+    }
+
+    public static interface RequestBuilder
+    {
+        public RequestBuilderWithUrl toUrl(Function<URLBuilder, URLBuilderWithBaseUrl> urlBuilderConsumer);
+
+        public RequestBuilderWithUrl toUrl(String url);
+    }
+
+    public static interface RequestBuilderWithUrl
+    {
+        public RequestBuilderWithUrl withHeader(String key, String value);
+
+        public <T> T get(Class<T> type);
+
+        public RequestBuilderWithUrl withHeaders(Map<String, String> headers);
+
+        public <R, B> R post(B body, Class<R> resultType);
+    }
+
+    public RequestBuilder request();
+
+    /**
+     * Returns a {@link FormBuilder} instance
+     * 
+     * @return
+     */
+    public static FormBuilder formBuilder()
+    {
+        return RestHelper.newFormBuilder();
+    }
 }

@@ -16,7 +16,7 @@
 
 
 */
-package org.omnaest.utils.rest.client;
+package org.omnaest.utils.rest.client.internal;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.omnaest.utils.CacheUtils;
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.cache.Cache;
+import org.omnaest.utils.rest.client.RestClient;
 import org.omnaest.utils.rest.client.RestHelper.RESTAccessExeption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,6 +121,12 @@ public class CachedRestClient extends AbstractRestClient
             this.cache.remove(key);
             throw e;
         }
+    }
+
+    @Override
+    public <R, B> R requestPost(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        return this.restClient.requestPost(url, body, resultType, headers);
     }
 
     @Override

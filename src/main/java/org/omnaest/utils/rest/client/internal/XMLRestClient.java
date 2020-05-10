@@ -16,11 +16,13 @@
 
 
 */
-package org.omnaest.utils.rest.client;
+package org.omnaest.utils.rest.client.internal;
 
 import java.util.Map;
 
 import org.omnaest.utils.XMLHelper;
+import org.omnaest.utils.rest.client.RestClient;
+import org.omnaest.utils.rest.client.RestHelper;
 
 /**
  * @see RestClient
@@ -33,5 +35,11 @@ public class XMLRestClient extends AbstractRestClient
     public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
     {
         return XMLHelper.parse(RestHelper.requestGet(url, headers, this.createRequestOptions()), type);
+    }
+
+    @Override
+    public <R, B> R requestPost(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        return XMLHelper.parse(RestHelper.requestPost(url, XMLHelper.serialize(body), headers, this.createRequestOptions()), resultType);
     }
 }
