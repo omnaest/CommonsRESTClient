@@ -333,7 +333,7 @@ public class RestHelper
 
     public static String requestPut(String url, String body)
     {
-        RequestOptions options = new RequestOptions();
+        RequestOptions options = new RequestOptions().setContentType("application/json");
         return requestPut(url, body, options);
     }
 
