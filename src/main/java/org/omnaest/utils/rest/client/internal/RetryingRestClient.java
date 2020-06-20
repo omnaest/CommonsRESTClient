@@ -168,4 +168,16 @@ public class RetryingRestClient extends InternalRestClient
                 + "]";
     }
 
+    @Override
+    public RestClient withContentMediaType(MediaType mediaType)
+    {
+        return this.restClient.withContentMediaType(mediaType);
+    }
+
+    @Override
+    public RestClient withContentMediaType(String mediaType)
+    {
+        return this.restClient.withContentMediaType(mediaType);
+    }
+
 }

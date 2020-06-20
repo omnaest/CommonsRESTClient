@@ -124,7 +124,30 @@ public abstract class AbstractRestClient extends InternalRestClient
                     @Override
                     public URLBuilderWithBaseUrl addQueryParameter(String key, String value)
                     {
-                        this.parameters.put(key, value);
+                        if (key != null)
+                        {
+                            this.parameters.put(key, value);
+                        }
+                        return this;
+                    }
+
+                    @Override
+                    public URLBuilderWithBaseUrl addQueryParameterIfNotNull(String key, String value)
+                    {
+                        if (key != null && value != null)
+                        {
+                            this.addQueryParameter(key, value);
+                        }
+                        return this;
+                    }
+
+                    @Override
+                    public URLBuilderWithBaseUrl addQueryParameterIfPresent(String key, Optional<String> value)
+                    {
+                        if (key != null && value != null && value.isPresent())
+                        {
+                            this.addQueryParameter(key, value.get());
+                        }
                         return this;
                     }
 

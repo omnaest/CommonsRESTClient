@@ -2,9 +2,11 @@ package org.omnaest.utils.rest.client.internal;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.omnaest.utils.CacheUtils;
+import org.omnaest.utils.rest.client.FormBuilder;
 import org.omnaest.utils.rest.client.RestClient;
 import org.omnaest.utils.rest.client.URLBuilder;
 import org.omnaest.utils.rest.client.URLBuilder.URLBuilderWithBaseUrl;
@@ -54,6 +56,14 @@ public abstract class InternalRestClient implements RestClient
                     {
                         return InternalRestClient.this.requestPost(url, body, resultType, this.headers);
                     }
+
+                    @Override
+                    public <R, B> R postForm(Consumer<FormBuilder> formBuilderConsumer, Class<R> resultType)
+                    {
+                        FormBuilder formBuilder = RestClient.formBuilder();
+                        formBuilderConsumer.accept(formBuilder);
+                        return this.post(formBuilder, resultType);
+                    }
                 };
             }
 
@@ -74,17 +84,4 @@ public abstract class InternalRestClient implements RestClient
         return this.withCache(CacheUtils.newLocalJsonFolderCache(name));
     }
 
-    @Override
-    public RestClient withContentMediaType(MediaType mediaType)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public RestClient withContentMediaType(String mediaType)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
 }

@@ -18,6 +18,8 @@
 */
 package org.omnaest.utils.rest.client;
 
+import java.util.Optional;
+
 /**
  * Helper to create urls with encoded parameters
  *
@@ -45,6 +47,24 @@ public interface URLBuilder
         public URLBuilderWithBaseUrl addQueryParameter(String key, String value);
 
         /**
+         * Similar to {@link #addQueryParameter(String, String)} but applies the query parameter only if the key and value are not null.
+         * 
+         * @param key
+         * @param value
+         * @return
+         */
+        public URLBuilderWithBaseUrl addQueryParameterIfNotNull(String key, String value);
+
+        /**
+         * Similar to {@link #addQueryParameter(String, String)} but applies the query parameter only if the {@link Optional#isPresent()} is true.
+         * 
+         * @param key
+         * @param value
+         * @return
+         */
+        public URLBuilderWithBaseUrl addQueryParameterIfPresent(String key, Optional<String> value);
+
+        /**
          * Similar to {@link #addQueryParameter(String, String)}
          * 
          * @param key
@@ -59,6 +79,7 @@ public interface URLBuilder
          * @return
          */
         public String build();
+
     }
 
     public URLBuilderWithBaseUrl setBaseUrl(String baseUrl);

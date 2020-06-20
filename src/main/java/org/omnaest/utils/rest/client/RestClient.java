@@ -21,6 +21,7 @@ package org.omnaest.utils.rest.client;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.omnaest.utils.ReflectionUtils;
@@ -218,6 +219,8 @@ public interface RestClient
         public RequestBuilderWithUrl withHeaders(Map<String, String> headers);
 
         public <R, B> R post(B body, Class<R> resultType);
+
+        public <R, B> R postForm(Consumer<FormBuilder> formBuilderConsumer, Class<R> resultType);
     }
 
     public RequestBuilder request();
