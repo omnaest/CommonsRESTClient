@@ -114,6 +114,12 @@ public class RetryingRestClient extends InternalRestClient
     }
 
     @Override
+    public <R, B> R requestPost(String url, B body, Class<R> resultType)
+    {
+        return this.execute(() -> this.restClient.requestPost(url, body, resultType));
+    }
+
+    @Override
     public RestClient withProxy(Proxy proxy)
     {
         return this.restClient.withProxy(proxy);

@@ -76,6 +76,16 @@ public interface RestClient
     public <R, B> R requestPost(String url, B body, Class<R> resultType, Map<String, String> headers);
 
     /**
+     * Similar to {@link #requestPost(String, Object, Class, Map)}
+     * 
+     * @param url
+     * @param body
+     * @param resultType
+     * @return
+     */
+    public <R, B> R requestPost(String url, B body, Class<R> resultType);
+
+    /**
      * @see FiddlerLocalhostProxy
      * @author omnaest
      */

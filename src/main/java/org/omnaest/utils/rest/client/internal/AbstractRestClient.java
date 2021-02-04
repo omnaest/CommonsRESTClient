@@ -178,6 +178,13 @@ public abstract class AbstractRestClient extends InternalRestClient
     }
 
     @Override
+    public <R, B> R requestPost(String url, B body, Class<R> resultType)
+    {
+        Map<String, String> headers = Collections.emptyMap();
+        return this.requestPost(url, body, resultType, headers);
+    }
+
+    @Override
     public RestClient withDefaultLocalhostProxy()
     {
         return this.withProxy(new FiddlerLocalhostProxy());
