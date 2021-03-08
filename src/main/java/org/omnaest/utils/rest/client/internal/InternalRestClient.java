@@ -85,7 +85,7 @@ public abstract class InternalRestClient implements RestClient
             @Override
             public RequestBuilderWithUrl toUrl(Function<URLBuilder, URLBuilderWithBaseUrl> urlBuilderConsumer)
             {
-                URLBuilder urlBuilder = InternalRestClient.this.urlBuilder();
+                URLBuilder urlBuilder = RestClient.urlBuilder();
                 URLBuilderWithBaseUrl appliedUrlBuilder = urlBuilderConsumer.apply(urlBuilder);
                 return this.toUrl(appliedUrlBuilder.build());
             }

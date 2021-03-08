@@ -33,6 +33,7 @@
 */
 package org.omnaest.utils.rest.client.internal;
 
+import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -55,7 +56,7 @@ import org.slf4j.LoggerFactory;
  * @see #setCache(Cache)
  * @author Omnaest
  */
-public class CachedRestClient extends AbstractRestClient
+public class CachedRestClient extends IntrinsicRestClient
 {
     private static final Logger LOG = LoggerFactory.getLogger(CachedRestClient.class);
 
@@ -104,7 +105,7 @@ public class CachedRestClient extends AbstractRestClient
             T retval = this.cache.computeIfAbsent(key, () ->
             {
                 cached.set(false);
-                return this.rawRequestGet(url, type);
+                return this.rawRequestGet(url, type, headers);
             }, type);
 
             //
@@ -155,15 +156,39 @@ public class CachedRestClient extends AbstractRestClient
         return url + " " + this.encode(headers);
     }
 
-    protected <T> T rawRequestGet(String url, Class<T> type)
+    protected <T> T rawRequestGet(String url, Class<T> type, Map<String, String> headers)
     {
         LOG.trace("Executing raw request to " + url);
-        return this.restClient.requestGet(url, type);
+        return this.restClient.requestGet(url, type, headers);
     }
 
     protected String encode(Map<String, String> headers)
     {
         return JSONHelper.prettyPrint(headers);
+    }
+
+    @Override
+    public RestClient withAcceptCharset(Charset charset)
+    {
+        return this.restClient.withAcceptCharset(charset);
+    }
+
+    @Override
+    public RestClient withoutSSLHostnameVerification()
+    {
+        return this.restClient.withoutSSLHostnameVerification();
+    }
+
+    @Override
+    public RestClient withAcceptMediaType(String mediaType)
+    {
+        return this.restClient.withAcceptMediaType(mediaType);
+    }
+
+    @Override
+    public RestClient withContentMediaType(String mediaType)
+    {
+        return this.restClient.withContentMediaType(mediaType);
     }
 
 }

@@ -44,6 +44,7 @@ import org.omnaest.utils.cache.Cache;
 import org.omnaest.utils.rest.client.URLBuilder.URLBuilderWithBaseUrl;
 import org.omnaest.utils.rest.client.internal.JSONRestClient;
 import org.omnaest.utils.rest.client.internal.StringRestClient;
+import org.omnaest.utils.rest.client.internal.URLBuilderImpl;
 import org.omnaest.utils.rest.client.internal.XMLRestClient;
 
 /**
@@ -59,7 +60,10 @@ public interface RestClient
      * @see URLBuilder
      * @return
      */
-    public URLBuilder urlBuilder();
+    public static URLBuilder urlBuilder()
+    {
+        return new URLBuilderImpl();
+    }
 
     /**
      * @see #urlBuilder()

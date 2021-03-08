@@ -23,7 +23,6 @@ import org.omnaest.utils.cache.Cache;
 import org.omnaest.utils.rest.client.RestClient;
 import org.omnaest.utils.rest.client.RestHelper.RESTAccessExeption;
 import org.omnaest.utils.rest.client.RestHelper.RESTConnectException;
-import org.omnaest.utils.rest.client.URLBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,12 +101,6 @@ public class RetryingRestClient extends InternalRestClient
             }
         }
         throw new IllegalStateException();
-    }
-
-    @Override
-    public URLBuilder urlBuilder()
-    {
-        return this.restClient.urlBuilder();
     }
 
     @Override
