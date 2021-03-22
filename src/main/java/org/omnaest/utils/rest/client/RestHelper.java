@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
@@ -68,6 +69,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
+import org.omnaest.utils.exception.RuntimeIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -296,9 +298,60 @@ public class RestHelper
         return requestGet(url, queryParameters, headers, options);
     }
 
-    public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options)
+    public static byte[] requestGetAsByteArray(String url, Map<String, String> headers, RequestOptions requestOptions)
     {
-        String retval = null;
+        Map<String, String> queryParameters = null;
+        return requestGet(url, queryParameters, headers, requestOptions, (response, options) ->
+        {
+            return Optional.ofNullable(response.getEntity())
+                           .map(entity ->
+                           {
+                               try
+                               {
+                                   return EntityUtils.toByteArray(entity);
+                               }
+                               catch (IOException e)
+                               {
+                                   throw new RuntimeIOException(e);
+                               }
+                               catch (Exception e)
+                               {
+                                   throw new IllegalStateException(e);
+                               }
+                           })
+                           .orElse(new byte[0]);
+        });
+    }
+
+    public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions requestOptions)
+    {
+        return requestGet(url, queryParameters, headers, requestOptions, (response, options) ->
+        {
+            return Optional.ofNullable(response.getEntity())
+                           .map(entity ->
+                           {
+                               try
+                               {
+                                   return EntityUtils.toString(entity, options != null && options.getAcceptCharset() != null ? options.getAcceptCharset()
+                                           : StandardCharsets.UTF_8);
+                               }
+                               catch (IOException e)
+                               {
+                                   throw new RuntimeIOException(e);
+                               }
+                               catch (Exception e)
+                               {
+                                   throw new IllegalStateException(e);
+                               }
+                           })
+                           .orElse("");
+        });
+    }
+
+    public static <T> T requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options,
+                                   BiFunction<HttpResponse, RequestOptions, T> responseHandler)
+    {
+        T retval = null;
         try (CloseableHttpClient httpclient = createHttpClient(options))
         {
             String parameters = Optional.ofNullable(queryParameters)
@@ -315,12 +368,7 @@ public class RestHelper
             applyOptions(options, httpGet);
             try (CloseableHttpResponse response = httpclient.execute(httpGet))
             {
-                HttpEntity entity = response.getEntity();
-
-                retval = entity != null
-                        ? EntityUtils.toString(entity,
-                                               options != null && options.getAcceptCharset() != null ? options.getAcceptCharset() : StandardCharsets.UTF_8)
-                        : "";
+                retval = responseHandler.apply(response, options);
 
                 applyResponseListeners(options, response);
 
@@ -328,11 +376,13 @@ public class RestHelper
                                          .getStatusCode();
                 if ((statusCode < 200 || statusCode > 299) && (statusCode != 302))
                 {
-                    throw new RESTAccessExeption(statusCode, retval);
+                    throw new RESTAccessExeption(statusCode, Optional.ofNullable(retval)
+                                                                     .map(String::valueOf)
+                                                                     .orElse(""));
                 }
 
             }
-            catch (IOException e)
+            catch (IOException | RuntimeIOException e)
             {
                 LOG.debug("", e);
                 throw new RESTConnectException(e);

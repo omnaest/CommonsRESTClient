@@ -42,6 +42,7 @@ import java.util.function.Function;
 import org.omnaest.utils.ReflectionUtils;
 import org.omnaest.utils.cache.Cache;
 import org.omnaest.utils.rest.client.URLBuilder.URLBuilderWithBaseUrl;
+import org.omnaest.utils.rest.client.internal.ByteArrayRestClient;
 import org.omnaest.utils.rest.client.internal.JSONRestClient;
 import org.omnaest.utils.rest.client.internal.StringRestClient;
 import org.omnaest.utils.rest.client.internal.URLBuilderImpl;
@@ -194,6 +195,7 @@ public interface RestClient
         APPLICATION_XML("application/xml;charset=utf-8"),
         APPLICATION_XML_UTF8("application/xml"),
         APPLICATION_FORM_URL_ENCODED("application/x-www-form-urlencoded"),
+        APPLICATION_OCTET_STREAM("application/octet-stream"),
         TEXT_PLAIN("text/plain"),
         TEXT_HTML("text/html"),
         ALL("*/*");
@@ -225,6 +227,11 @@ public interface RestClient
     public static RestClient newStringRestClient()
     {
         return new StringRestClient();
+    }
+
+    public static RestClient newByteArrayRestClient()
+    {
+        return new ByteArrayRestClient();
     }
 
     public static RestClient newRestClient(Class<? extends RestClient> type)
