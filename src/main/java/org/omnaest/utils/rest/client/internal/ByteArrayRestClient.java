@@ -79,4 +79,12 @@ public class ByteArrayRestClient extends AbstractRestClient
                 + " requestPost");
     }
 
+    @Override
+    public <R, B> R requestPatch(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        throw new UnsupportedOperationException(this.getClass()
+                                                    .getSimpleName()
+                + " requestPatch");
+    }
+
 }

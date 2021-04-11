@@ -146,6 +146,12 @@ public class CachedRestClient extends IntrinsicRestClient
     }
 
     @Override
+    public <R, B> R requestPatch(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        return this.restClient.requestPatch(url, body, resultType, headers);
+    }
+
+    @Override
     public RestClient withProxy(Proxy proxy)
     {
         return this.restClient.withProxy(proxy);

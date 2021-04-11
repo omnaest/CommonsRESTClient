@@ -44,6 +44,7 @@ import org.omnaest.utils.cache.Cache;
 import org.omnaest.utils.rest.client.URLBuilder.URLBuilderWithBaseUrl;
 import org.omnaest.utils.rest.client.internal.ByteArrayRestClient;
 import org.omnaest.utils.rest.client.internal.JSONRestClient;
+import org.omnaest.utils.rest.client.internal.MultipartUploaderImpl;
 import org.omnaest.utils.rest.client.internal.StringRestClient;
 import org.omnaest.utils.rest.client.internal.URLBuilderImpl;
 import org.omnaest.utils.rest.client.internal.XMLRestClient;
@@ -104,6 +105,17 @@ public interface RestClient
      * @return
      */
     public <R, B> R requestPost(String url, B body, Class<R> resultType);
+
+    /**
+     * Sends a PATCH request
+     * 
+     * @param url
+     * @param body
+     * @param resultType
+     * @param headers
+     * @return
+     */
+    public <R, B> R requestPatch(String url, B body, Class<R> resultType, Map<String, String> headers);
 
     /**
      * @see FiddlerLocalhostProxy
@@ -257,6 +269,8 @@ public interface RestClient
         public <R, B> R post(B body, Class<R> resultType);
 
         public <R, B> R postForm(Consumer<FormBuilder> formBuilderConsumer, Class<R> resultType);
+
+        public <R, B> R patch(B body, Class<R> resultType);
     }
 
     public RequestBuilder request();
@@ -269,5 +283,33 @@ public interface RestClient
     public static FormBuilder formBuilder()
     {
         return RestHelper.newFormBuilder();
+    }
+
+    public static MultipartUploader newMultipartUploader()
+    {
+        return new MultipartUploaderImpl();
+
+    }
+
+    public static interface MultipartUploader
+    {
+        public PreparedMultipartUpload toUrl(String url);
+
+        public static interface PreparedMultipartUpload
+        {
+            public PreparedMultipartUpload addHeader(String name, String value);
+
+            public PreparedMultipartUpload upload(String name, String fileName, byte[] data, Consumer<MultipartUploadResponse> responseHandler);
+
+            public static interface MultipartUploadResponse
+            {
+                public MultipartUploadResponse assertHttpStatusCode(int statusCode);
+
+                public int getHttpStatusCode();
+
+                public String getBody();
+            }
+
+        }
     }
 }

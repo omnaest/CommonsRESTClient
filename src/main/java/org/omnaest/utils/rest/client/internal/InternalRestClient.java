@@ -79,6 +79,13 @@ public abstract class InternalRestClient implements RestClient
                         formBuilderConsumer.accept(formBuilder);
                         return this.post(formBuilder, resultType);
                     }
+
+                    @Override
+                    public <R, B> R patch(B body, Class<R> resultType)
+                    {
+                        return InternalRestClient.this.requestPatch(url, body, resultType, this.headers);
+                    }
+
                 };
             }
 

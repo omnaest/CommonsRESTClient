@@ -51,12 +51,15 @@ import javax.net.ssl.SSLContext;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.config.RequestConfig.Builder;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -541,13 +544,13 @@ public class RestHelper
         }
     }
 
-    private static void applyHeaders(Map<String, String> headers, HttpRequestBase httpGet)
+    private static void applyHeaders(Map<String, String> headers, HttpRequest httpRequest)
     {
         if (headers != null)
         {
             for (String name : headers.keySet())
             {
-                httpGet.addHeader(name, headers.get(name));
+                httpRequest.addHeader(name, headers.get(name));
             }
         }
     }
@@ -566,6 +569,27 @@ public class RestHelper
 
     public static String requestPost(String url, Map<String, String> queryParameters, String body, Map<String, String> headers, RequestOptions options)
     {
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
+        return executeRequest(url, queryParameters, headers, options, httpPost);
+    }
+
+    public static String requestPatch(String url, String body, Map<String, String> headers, RequestOptions options)
+    {
+        Map<String, String> queryParameters = Collections.emptyMap();
+        return requestPatch(url, queryParameters, body, headers, options);
+    }
+
+    public static String requestPatch(String url, Map<String, String> queryParameters, String body, Map<String, String> headers, RequestOptions options)
+    {
+        HttpEntityEnclosingRequestBase httpPatch = new HttpPatch(url);
+        httpPatch.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
+        return executeRequest(url, queryParameters, headers, options, httpPatch);
+    }
+
+    private static String executeRequest(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options,
+                                         HttpEntityEnclosingRequestBase httpPatch)
+    {
         String retval = null;
         try (CloseableHttpClient httpclient = createHttpClient(options))
         {
@@ -578,12 +602,10 @@ public class RestHelper
 
             url = url + (StringUtils.isNotBlank(parameters) ? "?" + parameters : "");
 
-            HttpPost httpPost = new HttpPost(url);
-            httpPost.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
-            applyHeaders(headers, httpPost);
-            applyOptions(options, httpPost);
+            applyHeaders(headers, httpPatch);
+            applyOptions(options, httpPatch);
 
-            try (CloseableHttpResponse response = httpclient.execute(httpPost))
+            try (CloseableHttpResponse response = httpclient.execute(httpPatch))
             {
                 HttpEntity entity = response.getEntity();
 
@@ -614,7 +636,6 @@ public class RestHelper
             throw new RESTConnectException(e);
         }
         return retval;
-
     }
 
     public static FormBuilder newFormBuilder()

@@ -57,4 +57,10 @@ public class XMLRestClient extends AbstractRestClient
     {
         return XMLHelper.parse(RestHelper.requestPost(url, XMLHelper.serialize(body), headers, this.createRequestOptions()), resultType);
     }
+
+    @Override
+    public <R, B> R requestPatch(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        return XMLHelper.parse(RestHelper.requestPatch(url, XMLHelper.serialize(body), headers, this.createRequestOptions()), resultType);
+    }
 }

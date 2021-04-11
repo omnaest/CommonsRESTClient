@@ -75,17 +75,34 @@ public class StringRestClient extends AbstractRestClient
     @Override
     public <R, B> R requestPost(String url, B body, Class<R> resultType, Map<String, String> headers)
     {
-        if (!String.class.isAssignableFrom(resultType) || (body != null && !String.class.isAssignableFrom(body.getClass())))
-        {
-            throw new IllegalArgumentException("Only String type allowed for this implementation");
-        }
+        this.validateBodyAndResultType(body, resultType);
+        return (R) RestHelper.requestPost(url, (String) body, this.enrichHeaders(headers), this.createRequestOptions());
+    }
 
+    private Map<String, String> enrichHeaders(Map<String, String> headers)
+    {
         headers = MapUtils.builder()
                           .put("Accept", this.acceptMediaType)
                           .put("Content-Type", this.contentMediaType)
                           .putAll(headers)
                           .build();
-        return (R) RestHelper.requestPost(url, (String) body, headers, this.createRequestOptions());
+        return headers;
+    }
+
+    private <B, R> void validateBodyAndResultType(B body, Class<R> resultType)
+    {
+        if (!String.class.isAssignableFrom(resultType) || (body != null && !String.class.isAssignableFrom(body.getClass())))
+        {
+            throw new IllegalArgumentException("Only String type allowed for this implementation");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <R, B> R requestPatch(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        this.validateBodyAndResultType(body, resultType);
+        return (R) RestHelper.requestPatch(url, (String) body, this.enrichHeaders(headers), this.createRequestOptions());
     }
 
 }

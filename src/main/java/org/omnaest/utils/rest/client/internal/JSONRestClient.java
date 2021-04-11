@@ -72,4 +72,12 @@ public class JSONRestClient extends AbstractRestClient
                                          responseType);
     }
 
+    @Override
+    public <R, B> R requestPatch(String url, B body, Class<R> responseType, Map<String, String> headers)
+    {
+        return JSONHelper.readFromString(RestHelper.requestPatch(url, JSONHelper.serialize(body), headers, this.createRequestOptions()
+                                                                                                               .setContentType("application/json")),
+                                         responseType);
+    }
+
 }

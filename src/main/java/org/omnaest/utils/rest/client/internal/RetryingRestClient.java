@@ -128,6 +128,12 @@ public class RetryingRestClient extends InternalRestClient
     }
 
     @Override
+    public <R, B> R requestPatch(String url, B body, Class<R> resultType, Map<String, String> headers)
+    {
+        return this.execute(() -> this.restClient.requestPatch(url, body, resultType, headers));
+    }
+
+    @Override
     public RestClient withProxy(Proxy proxy)
     {
         return this.restClient.withProxy(proxy);
