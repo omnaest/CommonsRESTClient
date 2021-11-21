@@ -33,8 +33,10 @@
 */
 package org.omnaest.utils.rest.client.internal;
 
+import java.util.Collections;
 import java.util.Map;
 
+import org.apache.commons.lang.ObjectUtils;
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.MapUtils;
 import org.omnaest.utils.rest.client.RestClient;
@@ -69,6 +71,24 @@ public class ByteArrayRestClient extends AbstractRestClient
                           .putAll(headers)
                           .build();
         return (T) RestHelper.requestGetAsByteArray(url, headers, this.createRequestOptions());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> ResponseHolder<T> requestGetAnd(String url, Class<T> type, Map<String, String> headers)
+    {
+        if (!byte[].class.isAssignableFrom(type))
+        {
+            throw new IllegalArgumentException("Only byte array type allowed for this implementation");
+        }
+
+        headers = MapUtils.builder()
+                          .put("Accept", this.acceptMediaType)
+                          .putAll(headers)
+                          .build();
+        Map<String, String> queryParameters = Collections.emptyMap();
+        ResponseHolder<byte[]> responseHolder = RestHelper.requestGetAsByteArrayAnd(url, queryParameters, headers, this.createRequestOptions());
+        return responseHolder.map(data -> (T) ObjectUtils.defaultIfNull(data, new byte[0]));
     }
 
     @Override

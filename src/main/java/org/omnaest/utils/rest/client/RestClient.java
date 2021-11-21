@@ -35,9 +35,11 @@ package org.omnaest.utils.rest.client;
 
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.omnaest.utils.ReflectionUtils;
 import org.omnaest.utils.cache.Cache;
@@ -84,6 +86,15 @@ public interface RestClient
      * @return
      */
     public <T> T requestGet(String url, Class<T> type, Map<String, String> headers);
+
+    /**
+     * @see #requestGet(String, Class)
+     * @param url
+     * @param type
+     * @param headers
+     * @return
+     */
+    public <T> ResponseHolder<T> requestGetAnd(String url, Class<T> type, Map<String, String> headers);
 
     /**
      * Sends a POST request
@@ -264,6 +275,8 @@ public interface RestClient
 
         public <T> T get(Class<T> type);
 
+        public <T> ResponseHolder<T> getAnd(Class<T> type);
+
         public RequestBuilderWithUrl withHeaders(Map<String, String> headers);
 
         public <R, B> R post(B body, Class<R> resultType);
@@ -271,6 +284,22 @@ public interface RestClient
         public <R, B> R postForm(Consumer<FormBuilder> formBuilderConsumer, Class<R> resultType);
 
         public <R, B> R patch(B body, Class<R> resultType);
+
+    }
+
+    public static interface ResponseHolder<T> extends Supplier<T>
+    {
+        public ResponseHolder<T> handleStatusCode(int httpStatusCode, HttpStatusCodeHandler<T> statusCodeHandler);
+
+        public <R> ResponseHolder<R> map(Function<T, R> mapper);
+
+        public <R> ResponseHolder<R> mapResponse(Function<ResponseHolder<T>, R> mapper);
+
+        public Optional<T> asOptional();
+    }
+
+    public static interface HttpStatusCodeHandler<T> extends Function<ResponseHolder<T>, T>
+    {
     }
 
     public RequestBuilder request();

@@ -67,6 +67,12 @@ public abstract class InternalRestClient implements RestClient
                     }
 
                     @Override
+                    public <T> ResponseHolder<T> getAnd(Class<T> type)
+                    {
+                        return InternalRestClient.this.requestGetAnd(url, type, this.headers);
+                    }
+
+                    @Override
                     public <R, B> R post(B body, Class<R> resultType)
                     {
                         return InternalRestClient.this.requestPost(url, body, resultType, this.headers);

@@ -33,8 +33,10 @@
 */
 package org.omnaest.utils.rest.client.internal;
 
+import java.util.Collections;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.omnaest.utils.XMLHelper;
 import org.omnaest.utils.rest.client.RestClient;
 import org.omnaest.utils.rest.client.RestHelper;
@@ -50,6 +52,14 @@ public class XMLRestClient extends AbstractRestClient
     public <T> T requestGet(String url, Class<T> type, Map<String, String> headers)
     {
         return XMLHelper.parse(RestHelper.requestGet(url, headers, this.createRequestOptions()), type);
+    }
+
+    @Override
+    public <T> ResponseHolder<T> requestGetAnd(String url, Class<T> type, Map<String, String> headers)
+    {
+        Map<String, String> queryParameters = Collections.emptyMap();
+        return RestHelper.requestGetAsStringAnd(url, queryParameters, headers, this.createRequestOptions())
+                         .map(xml -> XMLHelper.parse(StringUtils.defaultString(xml), type));
     }
 
     @Override

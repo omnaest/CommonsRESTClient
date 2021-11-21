@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
@@ -73,8 +74,12 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.omnaest.utils.exception.RuntimeIOException;
+import org.omnaest.utils.rest.client.RestClient.ResponseHolder;
+import org.omnaest.utils.rest.client.internal.holder.ResponseHolderImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.UrlEscapers;
 
 /**
  * @see RestClient
@@ -266,14 +271,27 @@ public class RestHelper
 
     public static String encodeUrlParameter(String parameter)
     {
-        try
+        if (parameter != null)
         {
-            return URLEncoder.encode(parameter, "UTF-8");
+            try
+            {
+                return URLEncoder.encode(parameter, "UTF-8");
+            }
+            catch (UnsupportedEncodingException e)
+            {
+                throw new RuntimeException(e);
+            }
         }
-        catch (UnsupportedEncodingException e)
+        else
         {
-            throw new RuntimeException(e);
+            return null;
         }
+    }
+
+    public static String encodeUrlPathSegment(String pathSegment)
+    {
+        return UrlEscapers.urlFragmentEscaper()
+                          .escape(pathSegment);
     }
 
     public static String requestGet(String url)
@@ -304,55 +322,75 @@ public class RestHelper
     public static byte[] requestGetAsByteArray(String url, Map<String, String> headers, RequestOptions requestOptions)
     {
         Map<String, String> queryParameters = null;
-        return requestGet(url, queryParameters, headers, requestOptions, (response, options) ->
+        return requestGetAsByteArrayAnd(url, queryParameters, headers, requestOptions).get();
+    }
+
+    public static ResponseHolder<byte[]> requestGetAsByteArrayAnd(String url, Map<String, String> queryParameters, Map<String, String> headers,
+                                                                  RequestOptions requestOptions)
+    {
+        return requestGetAnd(url, queryParameters, headers, requestOptions, entity ->
         {
-            return Optional.ofNullable(response.getEntity())
-                           .map(entity ->
-                           {
-                               try
-                               {
-                                   return EntityUtils.toByteArray(entity);
-                               }
-                               catch (IOException e)
-                               {
-                                   throw new RuntimeIOException(e);
-                               }
-                               catch (Exception e)
-                               {
-                                   throw new IllegalStateException(e);
-                               }
-                           })
-                           .orElse(new byte[0]);
+            try
+            {
+                return EntityUtils.toByteArray(entity);
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeIOException(e);
+            }
+            catch (Exception e)
+            {
+                throw new IllegalStateException(e);
+            }
         });
     }
 
     public static String requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions requestOptions)
     {
+        return requestGetAsStringAnd(url, queryParameters, headers, requestOptions).get();
+    }
+
+    public static ResponseHolder<String> requestGetAsStringAnd(String url, Map<String, String> queryParameters, Map<String, String> headers,
+                                                               RequestOptions requestOptions)
+    {
+        return requestGetAnd(url, queryParameters, headers, requestOptions, entity ->
+        {
+            try
+            {
+                return EntityUtils.toString(entity, requestOptions != null && requestOptions.getAcceptCharset() != null ? requestOptions.getAcceptCharset()
+                        : StandardCharsets.UTF_8);
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeIOException(e);
+            }
+            catch (Exception e)
+            {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    public static <T> ResponseHolder<T> requestGetAnd(String url, Map<String, String> queryParameters, Map<String, String> headers,
+                                                      RequestOptions requestOptions, Function<HttpEntity, T> bodyExtractFunction)
+    {
         return requestGet(url, queryParameters, headers, requestOptions, (response, options) ->
         {
-            return Optional.ofNullable(response.getEntity())
-                           .map(entity ->
-                           {
-                               try
-                               {
-                                   return EntityUtils.toString(entity, options != null && options.getAcceptCharset() != null ? options.getAcceptCharset()
-                                           : StandardCharsets.UTF_8);
-                               }
-                               catch (IOException e)
-                               {
-                                   throw new RuntimeIOException(e);
-                               }
-                               catch (Exception e)
-                               {
-                                   throw new IllegalStateException(e);
-                               }
-                           })
-                           .orElse("");
+            applyResponseListeners(options, response);
+
+            T result = Optional.ofNullable(response.getEntity())
+                               .map(bodyExtractFunction)
+                               .orElse(null);
+
+            int responseHttpStatusCode = response.getStatusLine()
+                                                 .getStatusCode();
+
+            return new ResponseHolderImpl<T>(result, responseHttpStatusCode);
         });
     }
 
     public static <T> T requestGet(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options,
-                                   BiFunction<HttpResponse, RequestOptions, T> responseHandler)
+                                   BiFunction<CloseableHttpResponse, RequestOptions, T> responseHandler)
     {
         T retval = null;
         try (CloseableHttpClient httpclient = createHttpClient(options))
@@ -372,18 +410,6 @@ public class RestHelper
             try (CloseableHttpResponse response = httpclient.execute(httpGet))
             {
                 retval = responseHandler.apply(response, options);
-
-                applyResponseListeners(options, response);
-
-                int statusCode = response.getStatusLine()
-                                         .getStatusCode();
-                if ((statusCode < 200 || statusCode > 299) && (statusCode != 302))
-                {
-                    throw new RESTAccessExeption(statusCode, Optional.ofNullable(retval)
-                                                                     .map(String::valueOf)
-                                                                     .orElse(""));
-                }
-
             }
             catch (IOException | RuntimeIOException e)
             {

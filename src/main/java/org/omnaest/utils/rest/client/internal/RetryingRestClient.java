@@ -116,6 +116,12 @@ public class RetryingRestClient extends InternalRestClient
     }
 
     @Override
+    public <T> ResponseHolder<T> requestGetAnd(String url, Class<T> type, Map<String, String> headers)
+    {
+        return this.execute(() -> this.restClient.requestGetAnd(url, type, headers));
+    }
+
+    @Override
     public <R, B> R requestPost(String url, B body, Class<R> resultType, Map<String, String> headers)
     {
         return this.execute(() -> this.restClient.requestPost(url, body, resultType, headers));

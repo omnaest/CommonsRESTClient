@@ -33,8 +33,10 @@
 */
 package org.omnaest.utils.rest.client.internal;
 
+import java.util.Collections;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.MapUtils;
 import org.omnaest.utils.rest.client.RestClient;
@@ -62,6 +64,18 @@ public class JSONRestClient extends AbstractRestClient
                           .putAll(headers)
                           .build();
         return JSONHelper.readFromString(RestHelper.requestGet(url, headers, this.createRequestOptions()), type);
+    }
+
+    @Override
+    public <T> ResponseHolder<T> requestGetAnd(String url, Class<T> type, Map<String, String> headers)
+    {
+        headers = MapUtils.builder()
+                          .put("Accept", this.acceptMediaType)
+                          .putAll(headers)
+                          .build();
+        Map<String, String> queryParameters = Collections.emptyMap();
+        ResponseHolder<String> response = RestHelper.requestGetAsStringAnd(url, queryParameters, headers, this.createRequestOptions());
+        return response.map(string -> JSONHelper.readFromString(StringUtils.defaultString(string), type));
     }
 
     @Override

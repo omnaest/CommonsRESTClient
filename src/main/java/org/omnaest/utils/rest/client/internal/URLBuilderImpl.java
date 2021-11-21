@@ -103,7 +103,7 @@ public class URLBuilderImpl implements URLBuilder
             @Override
             public URLBuilderWithBaseUrl addPathToken(String pathToken)
             {
-                this.url.append("/" + RestHelper.encodeUrlParameter(pathToken));
+                this.url.append("/" + RestHelper.encodeUrlPathSegment(pathToken));
                 return this;
             }
 

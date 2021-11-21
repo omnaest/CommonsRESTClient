@@ -35,13 +35,16 @@ package org.omnaest.utils.rest.client.internal;
 
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.omnaest.utils.CacheUtils;
 import org.omnaest.utils.JSONHelper;
 import org.omnaest.utils.cache.Cache;
 import org.omnaest.utils.rest.client.RestClient;
 import org.omnaest.utils.rest.client.RestHelper.RESTAccessExeption;
+import org.omnaest.utils.rest.client.internal.holder.ResponseHolderImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,10 +105,18 @@ public class CachedRestClient extends IntrinsicRestClient
         try
         {
             //
+            boolean containsKey = this.cache.contains(key);
             T retval = this.cache.computeIfAbsent(key, () ->
             {
-                cached.set(false);
-                return this.rawRequestGet(url, type, headers);
+                if (containsKey)
+                {
+                    return null;
+                }
+                else
+                {
+                    cached.set(false);
+                    return this.rawRequestGet(url, type, headers);
+                }
             }, type);
 
             //
@@ -120,7 +131,7 @@ public class CachedRestClient extends IntrinsicRestClient
         catch (RESTAccessExeption e)
         {
             int statusCode = e.getStatusCode();
-            if (statusCode == 400)
+            if (statusCode == 400 || statusCode == 404)
             {
                 this.cache.put(url, null);
                 return null;
@@ -132,6 +143,63 @@ public class CachedRestClient extends IntrinsicRestClient
             }
         }
 
+        catch (Exception e)
+        {
+            this.cache.remove(key);
+            throw e;
+        }
+    }
+
+    @Override
+    public <T> ResponseHolder<T> requestGetAnd(String url, Class<T> type, Map<String, String> headers)
+    {
+        LOG.trace("Request to url: " + url);
+
+        AtomicBoolean cached = new AtomicBoolean(true);
+        String key = this.generateCacheKey(url, headers);
+        try
+        {
+            //
+            AtomicReference<ResponseHolder<T>> responseHolderReference = new AtomicReference<>();
+            boolean containsKey = this.cache.contains(key);
+            T result = this.cache.computeIfAbsent(key, () ->
+            {
+                if (containsKey)
+                {
+                    return null;
+                }
+                else
+                {
+                    cached.set(false);
+                    ResponseHolder<T> responseHolder = this.rawRequestGetAnd(url, type, headers);
+                    responseHolderReference.set(responseHolder);
+                    return responseHolder.get();
+                }
+            }, type);
+
+            //
+            if (cached.get())
+            {
+                LOG.trace("Cached");
+            }
+
+            return Optional.ofNullable(responseHolderReference.get())
+                           .orElseGet(() -> new ResponseHolderImpl<>(result, 200));
+        }
+        catch (RESTAccessExeption e)
+        {
+            int statusCode = e.getStatusCode();
+            if (statusCode == 400 || statusCode == 404)
+            {
+                this.cache.put(url, null);
+                return new ResponseHolderImpl<>(null, statusCode);
+            }
+            else
+            {
+                this.cache.remove(key);
+                throw e;
+            }
+        }
         catch (Exception e)
         {
             this.cache.remove(key);
@@ -166,6 +234,12 @@ public class CachedRestClient extends IntrinsicRestClient
     {
         LOG.trace("Executing raw request to " + url);
         return this.restClient.requestGet(url, type, headers);
+    }
+
+    protected <T> ResponseHolder<T> rawRequestGetAnd(String url, Class<T> type, Map<String, String> headers)
+    {
+        LOG.trace("Executing raw request to " + url);
+        return this.restClient.requestGetAnd(url, type, headers);
     }
 
     protected String encode(Map<String, String> headers)
