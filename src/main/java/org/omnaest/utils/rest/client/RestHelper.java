@@ -58,6 +58,7 @@ import org.apache.http.client.CookieStore;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.config.RequestConfig.Builder;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPatch;
@@ -489,6 +490,69 @@ public class RestHelper
         return retval;
     }
 
+    public static String requestDelete(String url)
+    {
+        RequestOptions options = new RequestOptions();
+        return requestDelete(url, options);
+    }
+
+    public static String requestDelete(String url, RequestOptions options)
+    {
+        Map<String, String> queryParameters = Collections.emptyMap();
+        Map<String, String> headers = Collections.emptyMap();
+        return requestDelete(url, queryParameters, headers, options);
+    }
+
+    public static String requestDelete(String url, Map<String, String> queryParameters, Map<String, String> headers, RequestOptions options)
+    {
+        String retval = null;
+        try (CloseableHttpClient httpclient = createHttpClient(options))
+        {
+            String parameters = Optional.ofNullable(queryParameters)
+                                        .orElseGet(() -> Collections.emptyMap())
+                                        .entrySet()
+                                        .stream()
+                                        .map(entry -> entry.getKey() + "=" + encodeUrlParameter(entry.getValue()))
+                                        .collect(Collectors.joining("&"));
+
+            url = url + (StringUtils.isNotBlank(parameters) ? "?" + parameters : "");
+
+            HttpDelete httpPut = new HttpDelete(url);
+            applyHeaders(headers, httpPut);
+            applyOptions(options, httpPut);
+            try (CloseableHttpResponse response = httpclient.execute(httpPut))
+            {
+                HttpEntity entity = response.getEntity();
+
+                retval = entity != null
+                        ? EntityUtils.toString(entity,
+                                               options != null && options.getAcceptCharset() != null ? options.getAcceptCharset() : StandardCharsets.UTF_8)
+                        : "";
+
+                applyResponseListeners(options, response);
+
+                int statusCode = response.getStatusLine()
+                                         .getStatusCode();
+                if ((statusCode < 200 || statusCode > 299) && (statusCode != 302))
+                {
+                    throw new RESTAccessExeption(statusCode, retval);
+                }
+
+            }
+            catch (IOException e)
+            {
+                LOG.debug("", e);
+                throw new RESTConnectException(e);
+            }
+        }
+        catch (IOException e)
+        {
+            LOG.debug("", e);
+            throw new RESTConnectException(e);
+        }
+        return retval;
+    }
+
     private static void applyResponseListeners(RequestOptions options, CloseableHttpResponse response)
     {
         if (options != null && options.hasResponseListeners())
@@ -579,6 +643,11 @@ public class RestHelper
                 httpRequest.addHeader(name, headers.get(name));
             }
         }
+    }
+
+    public static String requestPost(String url, String body)
+    {
+        return requestPost(url, body, new RequestOptions().setContentType("application/json"));
     }
 
     public static String requestPost(String url, String body, RequestOptions options)
