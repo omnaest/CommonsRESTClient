@@ -15,17 +15,17 @@
  ******************************************************************************/
 package org.omnaest.utils.rest.client.internal;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.omnaest.utils.rest.client.RestClient;
 import org.omnaest.utils.rest.client.RestHelper;
-import org.omnaest.utils.rest.client.RestHelper.RESTAccessExeption;
-import org.omnaest.utils.rest.client.internal.RetryingRestClient;
 
 public class RetryingRestClientTest
 {
@@ -53,13 +53,13 @@ public class RetryingRestClientTest
                 return "value";
             }
         };
-        Mockito.when(restClient.requestGet(Matchers.anyString(), Matchers.any()))
+        Mockito.when(restClient.requestGet(anyString(), any()))
                .thenAnswer(answer);
 
         retryingRestClient.requestGet("url", String.class);
 
         Mockito.verify(restClient, Mockito.times(5))
-               .requestGet(Matchers.anyString(), Matchers.any());
+               .requestGet(anyString(), any());
     }
 
 }
